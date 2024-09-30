@@ -1,37 +1,49 @@
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux';
 import Navbar from 'react-bootstrap/Navbar';
-import Form from 'react-bootstrap/Form'
-import Button from 'react-bootstrap/Button'
-import Blockies from 'react-blockies'
-
+import Form from 'react-bootstrap/Form';
+import Button from 'react-bootstrap/Button';
+import Blockies from 'react-blockies';
+import { connectWallet } from '../store/interactions'; // Import connectWallet function
+import { useState } from 'react'; // New import for loading state
 import logo from '../logo.png';
-
-import { loadAccount, loadBalances } from '../store/interactions'
-
-import config from '../config.json'
+const config = require('../config.json');
 
 const Navigation = () => {
-  const chainId = useSelector(state => state.provider.chainId)
-  const account = useSelector(state => state.provider.account)
-  const tokens = useSelector(state => state.tokens.contracts)
-  const amm = useSelector(state => state.amm.contract)
-
-  const dispatch = useDispatch()
+  const chainId = useSelector((state) => state.provider.chainId);
+  const account = useSelector((state) => state.provider.account);
+  const provider = useSelector((state) => state.provider.connection); // Get provider from Redux state
+  const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false); // Loading state for connect wallet
 
   const connectHandler = async () => {
-    const account = await loadAccount(dispatch)
-    await loadBalances(amm, tokens, account, dispatch)
-  }
+    if (!provider) {
+      console.error("Provider not available. Make sure MetaMask is installed.");
+      return;
+    }
+
+    try {
+      setLoading(true); // Start loading
+      await connectWallet(provider, dispatch); // Call connectWallet function with provider and dispatch
+    } catch (error) {
+      console.error("Error connecting to wallet:", error);
+    } finally {
+      setLoading(false); // End loading
+    }
+  };
 
   const networkHandler = async (e) => {
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: e.target.value }],
-    })
-  }
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: e.target.value }],
+      });
+    } catch (error) {
+      console.error('Network switch failed', error);
+    }
+  };
 
   return (
-    <Navbar className='my-3' expand="lg">
+    <Navbar className="my-3" expand="lg">
       <img
         alt="logo"
         src={logo}
@@ -43,12 +55,10 @@ const Navigation = () => {
 
       <Navbar.Toggle aria-controls="nav" />
       <Navbar.Collapse id="nav" className="justify-content-end">
-
         <div className="d-flex justify-content-end mt-3">
-
           <Form.Select
             aria-label="Network Selector"
-            value={config[chainId] ? `0x${chainId.toString(16)}` : `0`}
+            value={config[chainId] ? `0x${chainId.toString(16)}` : '0'}
             onChange={networkHandler}
             style={{ maxWidth: '200px', marginRight: '20px' }}
           >
@@ -58,7 +68,7 @@ const Navigation = () => {
           </Form.Select>
 
           {account ? (
-            <Navbar.Text className='d-flex align-items-center'>
+            <Navbar.Text className="d-flex align-items-center">
               {account.slice(0, 5) + '...' + account.slice(38, 42)}
               <Blockies
                 seed={account}
@@ -71,14 +81,14 @@ const Navigation = () => {
               />
             </Navbar.Text>
           ) : (
-            <Button onClick={connectHandler}>Connect</Button>
+            <Button onClick={connectHandler} disabled={loading}>
+              {loading ? 'Connecting...' : 'Connect Wallet'}
+            </Button>
           )}
-
         </div>
-
       </Navbar.Collapse>
     </Navbar>
   );
-}
+};
 
 export default Navigation;

@@ -1,17 +1,19 @@
-import { configureStore } from '@reduxjs/toolkit'
-
-import provider from './reducers/provider'
-import tokens from './reducers/tokens'
-import amm from './reducers/amm'
+import { configureStore } from '@reduxjs/toolkit';
+import thunk from 'redux-thunk';
+import providerReducer from './reducers/provider';
+import tokensReducer from './reducers/tokens';
+import ammReducer from './reducers/amm';
+import aggregatorReducer from './reducers/aggregator'; 
 
 export const store = configureStore({
   reducer: {
-    provider,
-    tokens,
-    amm
+    provider: providerReducer,
+    tokens: tokensReducer,
+    amm: ammReducer,
+    aggregator: aggregatorReducer,
   },
-  middleware: getDefaultMiddleware =>
+  middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false
-    })
-})
+      serializableCheck: false,  // Disable serializability checks for non-serializable objects like provider and contract instances
+    }).concat(thunk)
+});

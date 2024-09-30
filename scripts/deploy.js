@@ -1,35 +1,53 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
-// will compile your contracts, add the Hardhat Runtime Environment's members to the
-// global scope, and execute the script.
 const hre = require("hardhat");
 
 async function main() {
-  const Token = await hre.ethers.getContractFactory('Token')
+  const Token = await hre.ethers.getContractFactory('Token');
+  const AMM = await hre.ethers.getContractFactory('AMM');
+  const Aggregator = await hre.ethers.getContractFactory('Aggregator');
 
-  // Deploy Token 1
-  let dapp = await Token.deploy('Dapp Token', 'DAPP', '1000000') // 1 million tokens
-  await dapp.deployed()
-  console.log(`Dapp Token deployed to: ${dapp.address}\n`)
+  // Consider extracting initial parameters from config.json if relevant
+  // const config = require('./config.json');
+  // const initialSupply = config.initialSupply; // example
 
-  // Deploy Token 2
-  const usd = await Token.deploy('USD Token', 'USD', '1000000') // 1 million tokens
-  await usd.deployed()
-  console.log(`USD Token deployed to: ${usd.address}\n`)
+  // Deploy Token instances for AMM1
+  const dappTokenAMM1 = await Token.deploy('DApp Token for AMM 1', 'DAPP1', '1000000');
+  await dappTokenAMM1.deployed();
+  console.log(`DApp Token for AMM 1 deployed to: ${dappTokenAMM1.address}`);
 
-  // Deploy AMM
-  const AMM = await hre.ethers.getContractFactory('AMM')
-  const amm = await AMM.deploy(dapp.address, usd.address)
+  const usdTokenAMM1 = await Token.deploy('USD Token for AMM 1', 'USD1', '1000000');
+  await usdTokenAMM1.deployed();
+  console.log(`USD Token for AMM 1 deployed to: ${usdTokenAMM1.address}`);
 
-  console.log(`AMM contract deployed to: ${amm.address}\n`)
+  // Deploy Token instances for AMM2
+  const dappTokenAMM2 = await Token.deploy('DApp Token for AMM 2', 'DAPP2', '1000000');
+  await dappTokenAMM2.deployed();
+  console.log(`DApp Token for AMM 2 deployed to: ${dappTokenAMM2.address}`);
 
+  const usdTokenAMM2 = await Token.deploy('USD Token for AMM 2', 'USD2', '1000000');
+  await usdTokenAMM2.deployed();
+  console.log(`USD Token for AMM 2 deployed to: ${usdTokenAMM2.address}`);
+
+  // Deploy AMM instances
+  const amm1 = await AMM.deploy();
+  await amm1.deployed();
+  console.log(`AMM 1 contract deployed to: ${amm1.address}`);
+
+  const amm2 = await AMM.deploy();
+  await amm2.deployed();
+  console.log(`AMM 2 contract deployed to: ${amm2.address}`);
+
+  // Deploy Aggregator with AMM instances
+  const aggregator = await Aggregator.deploy(amm1.address, amm2.address);
+  await aggregator.deployed();
+  console.log(`Aggregator contract deployed to: ${aggregator.address}`);
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => {
+    console.log('Deployment completed successfully.');
+    process.exit(0);
+  })
+  .catch(error => {
+    console.error('Deployment failed:', error);
+    process.exit(1);
+  });

@@ -1,211 +1,83 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
 import "./Token.sol";
 
 contract AMM {
-    Token public token1;
-    Token public token2;
+    address public owner;
+    mapping(address => mapping(address => uint256)) public liquidity; // Token1 -> Token2 -> Amount
+    mapping(address => mapping(address => uint256)) public reserves; // Token1 -> Token2 -> Reserve
 
-    uint256 public token1Balance;
-    uint256 public token2Balance;
-    uint256 public K;
+    event LiquidityAdded(address indexed provider, address token1, address token2, uint256 amountToken1, uint256 amountToken2);
+    event LiquidityRemoved(address indexed provider, address token1, address token2, uint256 amountToken1, uint256 amountToken2);
+    event TokensSwapped(address indexed trader, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
 
-    uint256 public totalShares;
-    mapping(address => uint256) public shares;
-    uint256 constant PRECISION = 10**18;
-
-    event Swap(
-        address user,
-        address tokenGive,
-        uint256 tokenGiveAmount,
-        address tokenGet,
-        uint256 tokenGetAmount,
-        uint256 token1Balance,
-        uint256 token2Balance,
-        uint256 timestamp
-    );
-
-    constructor(Token _token1, Token _token2) {
-        token1 = _token1;
-        token2 = _token2;
+    constructor() {
+        owner = msg.sender;
     }
 
-    function addLiquidity(uint256 _token1Amount, uint256 _token2Amount) external {
-        // Deposit Tokens
-        require(
-            token1.transferFrom(msg.sender, address(this), _token1Amount),
-            "failed to transfer token 1"
-        );
-        require(
-            token2.transferFrom(msg.sender, address(this), _token2Amount),
-            "failed to transfer token 2"
-        );
+    function addLiquidity(address token1, address token2, uint256 amountToken1, uint256 amountToken2) external {
+        // Transfer tokens from sender to this contract
+        Token(token1).transferFrom(msg.sender, address(this), amountToken1);
+        Token(token2).transferFrom(msg.sender, address(this), amountToken2);
 
-        // Issue Shares
-        uint256 share;
+        // Update liquidity and reserves
+        liquidity[token1][token2] += amountToken1;
+        liquidity[token2][token1] += amountToken2;
+        reserves[token1][token2] += amountToken1;
+        reserves[token2][token1] += amountToken2;
 
-        // If first time adding liquidity, make share 100
-        if (totalShares == 0) {
-            share = 100 * PRECISION;
-        } else {
-            uint256 share1 = (totalShares * _token1Amount) / token1Balance;
-            uint256 share2 = (totalShares * _token2Amount) / token2Balance;
-            require(
-                (share1 / 10**3) == (share2 / 10**3),
-                "must provide equal token amounts"
-            );
-            share = share1;
-        }
-
-        // Manage Pool
-        token1Balance += _token1Amount;
-        token2Balance += _token2Amount;
-        K = token1Balance * token2Balance;
-
-        // Updates shares
-        totalShares += share;
-        shares[msg.sender] += share;
+        emit LiquidityAdded(msg.sender, token1, token2, amountToken1, amountToken2);
     }
 
-    // Determine how many token2 tokens must be deposited when depositing liquidity for token1
-    function calculateToken2Deposit(uint256 _token1Amount)
-        public
-        view
-        returns (uint256 token2Amount)
-    {
-        token2Amount = (token2Balance * _token1Amount) / token1Balance;
+    function removeLiquidity(address token1, address token2, uint256 amountToken1, uint256 amountToken2) external {
+        require(liquidity[token1][token2] >= amountToken1 && liquidity[token2][token1] >= amountToken2, "Insufficient liquidity");
+
+        // Transfer tokens back to the liquidity provider
+        Token(token1).transfer(msg.sender, amountToken1);
+        Token(token2).transfer(msg.sender, amountToken2);
+
+        // Update liquidity and reserves
+        liquidity[token1][token2] -= amountToken1;
+        liquidity[token2][token1] -= amountToken2;
+        reserves[token1][token2] -= amountToken1;
+        reserves[token2][token1] -= amountToken2;
+
+        emit LiquidityRemoved(msg.sender, token1, token2, amountToken1, amountToken2);
     }
 
-    // Determine how many token1 tokens must be deposited when depositing liquidity for token2
-    function calculateToken1Deposit(uint256 _token2Amount)
-        public
-        view
-        returns (uint256 token1Amount)
-    {
-        token1Amount = (token1Balance * _token2Amount) / token2Balance;
+    function swap(address tokenIn, address tokenOut, uint256 amountIn) external returns (uint256 amountOut, uint256 newReserveIn, uint256 newReserveOut) {
+        require(reserves[tokenIn][tokenOut] > 0 && reserves[tokenOut][tokenIn] > 0, "No liquidity found for this token pair");
+
+        uint256 reserveIn = reserves[tokenIn][tokenOut];
+        uint256 reserveOut = reserves[tokenOut][tokenIn];
+        amountOut = (amountIn * reserveOut) / reserveIn;
+
+        // Transfer tokens
+        Token(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        Token(tokenOut).transfer(msg.sender, amountOut);
+
+        // Update reserves
+        reserves[tokenIn][tokenOut] += amountIn;
+        reserves[tokenOut][tokenIn] -= amountOut;
+
+        // Return the new reserves
+        newReserveIn = reserves[tokenIn][tokenOut];
+        newReserveOut = reserves[tokenOut][tokenIn];
+
+        emit TokensSwapped(msg.sender, tokenIn, tokenOut, amountIn, amountOut);
     }
 
-    // Returns amount of token2 received when swapping token1
-    function calculateToken1Swap(uint256 _token1Amount)
-        public
-        view
-        returns (uint256 token2Amount)
-    {
-        uint256 token1After = token1Balance + _token1Amount;
-        uint256 token2After = K / token1After;
-        token2Amount = token2Balance - token2After;
-
-        // Don't let the pool go to 0
-        if (token2Amount == token2Balance) {
-            token2Amount--;
-        }
-
-        require(token2Amount < token2Balance, "swap amount to large");
+    function getPrice(address tokenA, address tokenB) external view returns (uint256 price) {
+        require(reserves[tokenA][tokenB] > 0 && reserves[tokenB][tokenA] > 0, "No liquidity found for this token pair");
+        return (reserves[tokenA][tokenB] * 1e18) / reserves[tokenB][tokenA];
     }
 
-    function swapToken1(uint256 _token1Amount)
-        external
-        returns(uint256 token2Amount)
-    {
-        // Calculate Token 2 Amount
-        token2Amount = calculateToken1Swap(_token1Amount);
-
-        // Do Swap
-        token1.transferFrom(msg.sender, address(this), _token1Amount);
-        token1Balance += _token1Amount;
-        token2Balance -= token2Amount;
-        token2.transfer(msg.sender, token2Amount);
-
-        // Emit an event
-        emit Swap(
-            msg.sender,
-            address(token1),
-            _token1Amount,
-            address(token2),
-            token2Amount,
-            token1Balance,
-            token2Balance,
-            block.timestamp
-        );
+    function getReserves(address token1, address token2) external view returns (uint256 reserveToken1, uint256 reserveToken2) {
+        return (reserves[token1][token2], reserves[token2][token1]);
     }
 
-    // Returns amount of token1 received when swapping token2
-    function calculateToken2Swap(uint256 _token2Amount)
-        public
-        view
-        returns (uint256 token1Amount)
-    {
-        uint256 token2After = token2Balance + _token2Amount;
-        uint256 token1After = K / token2After;
-        token1Amount = token1Balance - token1After;
-
-        // Don't let the pool go to 0
-        if (token1Amount == token1Balance) {
-            token1Amount--;
-        }
-
-        require(token1Amount < token1Balance, "swap amount to large");
-    }
-
-    function swapToken2(uint256 _token2Amount)
-        external
-        returns(uint256 token1Amount)
-    {
-        // Calculate Token 1 Amount
-        token1Amount = calculateToken2Swap(_token2Amount);
-
-        // Do Swap
-        token2.transferFrom(msg.sender, address(this), _token2Amount);
-        token2Balance += _token2Amount;
-        token1Balance -= token1Amount;
-        token1.transfer(msg.sender, token1Amount);
-
-        // Emit an event
-        emit Swap(
-            msg.sender,
-            address(token2),
-            _token2Amount,
-            address(token1),
-            token1Amount,
-            token1Balance,
-            token2Balance,
-            block.timestamp
-        );
-    }
-
-    // Determine how many tokens will be withdrawn
-    function calculateWithdrawAmount(uint256 _share)
-        public
-        view
-        returns (uint256 token1Amount, uint256 token2Amount)
-    {
-        require(_share <= totalShares, "must be less than total shares");
-        token1Amount = (_share * token1Balance) / totalShares;
-        token2Amount = (_share * token2Balance) / totalShares;
-    }
-
-    // Removes liquidity from the pool
-    function removeLiquidity(uint256 _share)
-        external
-        returns(uint256 token1Amount, uint256 token2Amount)
-    {
-        require(
-            _share <= shares[msg.sender],
-            "cannot withdraw more shares than you have"
-        );
-
-        (token1Amount, token2Amount) = calculateWithdrawAmount(_share);
-
-        shares[msg.sender] -= _share;
-        totalShares -= _share;
-
-        token1Balance -= token1Amount;
-        token2Balance -= token2Amount;
-        K = token1Balance * token2Balance;
-
-        token1.transfer(msg.sender, token1Amount);
-        token2.transfer(msg.sender, token2Amount);
+    function getTokenBalance(address token) external view returns (uint256) {
+        return Token(token).balanceOf(address(this));
     }
 }

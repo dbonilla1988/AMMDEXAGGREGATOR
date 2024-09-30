@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
+ import { createSlice } from '@reduxjs/toolkit'
 
 export const amm = createSlice({
   name: 'amm',
@@ -96,3 +96,4 @@ export const {
 } = amm.actions;
 
 export default amm.reducer;
+
