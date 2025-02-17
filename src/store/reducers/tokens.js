@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'; // Ensure this is imported
+import { createSlice } from '@reduxjs/toolkit';
 
 export const tokens = createSlice({
   name: 'tokens',
@@ -41,37 +41,41 @@ export const tokens = createSlice({
         usdToken2Symbol,
       };
     },
-    balancesLoaded: (state, action) => {
+    tokenBalancesLoaded: (state, action) => {
       const { amm1, amm2 } = action.payload || {};
 
       // Log the payload for debugging
-      console.log('Reducer: Payload received in balancesLoaded:', action.payload);
+      console.log('Reducer: Payload received in tokenBalancesLoaded:', action.payload);
 
-      // Error handling if either amm1 or amm2 is missing in the payload
+      // Validate payload and update state or set errors
       if (!amm1 || !amm2) {
-        console.error('Reducer: Invalid payload for balancesLoaded, missing `amm1` or `amm2`');
-        state.error = 'Invalid payload for balancesLoaded';
+        console.error('Reducer: Invalid payload for tokenBalancesLoaded, missing `amm1` or `amm2`');
+        state.error = 'Invalid payload for tokenBalancesLoaded';
         return;
       }
 
-      // Additional logging to verify the structure of amm1 and amm2
-      console.log('Reducer: AMM1 Balances:', amm1);
-      console.log('Reducer: AMM2 Balances:', amm2);
-
-      // Check if all balances exist before updating the state
+      // Ensure the required properties are present in both amm1 and amm2
       if (
-        amm1.dappTokenBalance !== undefined &&
-        amm1.usdTokenBalance !== undefined &&
-        amm2.dappTokenBalance !== undefined &&
-        amm2.usdTokenBalance !== undefined
+        typeof amm1.dappTokenBalance === 'undefined' ||
+        typeof amm1.usdTokenBalance === 'undefined' ||
+        typeof amm2.dappTokenBalance === 'undefined' ||
+        typeof amm2.usdTokenBalance === 'undefined'
       ) {
-        state.amm1Balances = amm1;
-        state.amm2Balances = amm2;
-        state.error = null; // Clear any previous errors
-      } else {
-        console.error('Reducer: Missing balances for AMM1 or AMM2 in the payload');
-        state.error = 'Missing balances for AMM1 or AMM2';
+        console.error('Reducer: Invalid structure for tokenBalancesLoaded payload');
+        state.error = 'Invalid structure for tokenBalancesLoaded payload';
+        return;
       }
+
+      // If everything is valid, update the balances
+      state.amm1Balances = {
+        dappTokenBalance: amm1.dappTokenBalance,
+        usdTokenBalance: amm1.usdTokenBalance,
+      };
+      state.amm2Balances = {
+        dappTokenBalance: amm2.dappTokenBalance,
+        usdTokenBalance: amm2.usdTokenBalance,
+      };
+      state.error = null; // Clear any previous errors if the payload is valid
     },
     setLoading: (state, action) => {
       state.loading = action.payload;
@@ -82,5 +86,12 @@ export const tokens = createSlice({
   },
 });
 
-export const { setContracts, setSymbols, balancesLoaded, setLoading, setError } = tokens.actions;
+export const {
+  setContracts,
+  setSymbols,
+  tokenBalancesLoaded,
+  setLoading,
+  setError,
+} = tokens.actions;
+
 export default tokens.reducer;

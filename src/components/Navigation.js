@@ -1,75 +1,72 @@
-import { useSelector, useDispatch } from 'react-redux';
-import Navbar from 'react-bootstrap/Navbar';
-import Form from 'react-bootstrap/Form';
-import Button from 'react-bootstrap/Button';
-import Blockies from 'react-blockies';
-import { connectWallet } from '../store/interactions'; // Import connectWallet function
-import { useState } from 'react'; // New import for loading state
-import logo from '../logo.png';
-const config = require('../config.json');
+      // src/components/Navigation.js
+import { useSelector, useDispatch } from "react-redux";
+import Navbar from "react-bootstrap/Navbar";
+import Form from "react-bootstrap/Form";
+import Button from "react-bootstrap/Button";
+import Blockies from "react-blockies";
+import logo from "../logo.png";
+import { connectProvider } from "../store/reducers/provider"; // The thunk
+import config from "../config.json";
 
 const Navigation = () => {
-  const chainId = useSelector((state) => state.provider.chainId);
-  const account = useSelector((state) => state.provider.account);
-  const provider = useSelector((state) => state.provider.connection); // Get provider from Redux state
   const dispatch = useDispatch();
-  const [loading, setLoading] = useState(false); // Loading state for connect wallet
 
-  const connectHandler = async () => {
-    if (!provider) {
-      console.error("Provider not available. Make sure MetaMask is installed.");
+  // Removed `connection` and `error` to fix ESLint "unused vars" warnings.
+  const { account, chainId, loading } = useSelector((state) => state.provider);
+
+  const connectHandler = () => {
+    if (!window.ethereum) {
+      console.error("MetaMask not installed or window.ethereum missing.");
       return;
     }
-
-    try {
-      setLoading(true); // Start loading
-      await connectWallet(provider, dispatch); // Call connectWallet function with provider and dispatch
-    } catch (error) {
-      console.error("Error connecting to wallet:", error);
-    } finally {
-      setLoading(false); // End loading
-    }
+    // If we haven't connected, dispatch the thunk
+    dispatch(connectProvider());
   };
 
   const networkHandler = async (e) => {
     try {
       await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
+        method: "wallet_switchEthereumChain",
         params: [{ chainId: e.target.value }],
       });
     } catch (error) {
-      console.error('Network switch failed', error);
+      console.error("Network switch failed", error);
     }
   };
 
   return (
-    <Navbar className="my-3" expand="lg">
-      <img
-        alt="logo"
-        src={logo}
-        width="40"
-        height="40"
-        className="d-inline-block align-top mx-3"
-      />
-      <Navbar.Brand href="#">Dapp University AMM</Navbar.Brand>
+    <Navbar className="my-3 bg-light p-2" expand="lg">
+      <Navbar.Brand href="#" className="d-flex align-items-center">
+        <img
+          alt="logo"
+          src={logo}
+          width="40"
+          height="40"
+          className="d-inline-block align-top mx-2"
+        />
+        <span>Davids AMM</span>
+      </Navbar.Brand>
 
       <Navbar.Toggle aria-controls="nav" />
+
       <Navbar.Collapse id="nav" className="justify-content-end">
-        <div className="d-flex justify-content-end mt-3">
+        <div className="d-flex align-items-center">
           <Form.Select
             aria-label="Network Selector"
-            value={config[chainId] ? `0x${chainId.toString(16)}` : '0'}
+            value={config[chainId] ? `0x${chainId?.toString(16)}` : "0"}
             onChange={networkHandler}
-            style={{ maxWidth: '200px', marginRight: '20px' }}
+            style={{ maxWidth: "200px", marginRight: "20px" }}
           >
-            <option value="0" disabled>Select Network</option>
-            <option value="0x7A69">Localhost</option>
+            <option value="0" disabled>
+              Select Network
+            </option>
+            <option value="0x7A69">Localhost 31337</option>
             <option value="0x5">Goerli</option>
           </Form.Select>
 
           {account ? (
             <Navbar.Text className="d-flex align-items-center">
-              {account.slice(0, 5) + '...' + account.slice(38, 42)}
+              {account.slice(0, 5) + "..." + account.slice(38, 42)}
               <Blockies
                 seed={account}
                 size={10}
@@ -81,8 +78,8 @@ const Navigation = () => {
               />
             </Navbar.Text>
           ) : (
-            <Button onClick={connectHandler} disabled={loading}>
-              {loading ? 'Connecting...' : 'Connect Wallet'}
+            <Button onClick={connectHandler} disabled={loading} variant="primary">
+              {loading ? "Connecting..." : "Connect Wallet"}
             </Button>
           )}
         </div>

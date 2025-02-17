@@ -1,15 +1,32 @@
 {
   "name": "amm",
   "version": "1.0.0",
+  "private": true,
   "description": "",
+  "author": "gregory@dappuniversity.com",
+  "license": "ISC",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
   "dependencies": {
+    "@chakra-ui/react": "^2.5.2",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@reduxjs/toolkit": "^1.8.4",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
     "@web3-react/core": "^8.2.3",
     "bootstrap": "^5.2.0",
+    "crypto-browserify": "^3.12.1",
+    "framer-motion": "^7.10.3",
     "lodash": "^4.17.21",
+    "os-browserify": "^0.3.0",
+    "path-browserify": "^1.0.1",
+    "process": "^0.11.10",
     "react": "^18.2.0",
     "react-apexcharts": "^1.4.0",
     "react-blockies": "^1.4.1",
@@ -18,19 +35,19 @@
     "react-redux": "^8.0.2",
     "react-router-bootstrap": "^0.26.2",
     "react-router-dom": "^6.3.0",
-    "react-scripts": "^5.0.1",
     "redux-thunk": "^2.4.1",
     "reselect": "^4.1.6",
     "web-vitals": "^2.1.4"
   },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.18.6",
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "dotenv": "^16.3.2",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.10.1",
+    "react-scripts": "^5.0.1"
   },
-  "author": "gregory@dappuniversity.com",
-  "license": "ISC",
   "eslintConfig": {
     "extends": [
       "react-app",
@@ -48,13 +65,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.18.6",
-    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
-    "@nomiclabs/hardhat-ethers": "^2.2.3",
-    "dotenv": "^16.3.2",
-    "ethers": "^5.7.2",
-    "hardhat": "^2.10.1"
   }
 }

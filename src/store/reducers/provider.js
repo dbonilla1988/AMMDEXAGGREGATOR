@@ -1,20 +1,27 @@
+// src/store/reducers/provider.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { ethers } from 'ethers';
 
 // Async thunk to connect to Ethereum provider and get the account
-export const connectProvider = createAsyncThunk('provider/connectProvider', async (_, { rejectWithValue }) => {
-  try {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send('eth_requestAccounts', []);
-    const signer = provider.getSigner();
-    const account = await signer.getAddress();
-    const network = await provider.getNetwork();
+export const connectProvider = createAsyncThunk(
+  'provider/connectProvider',
+  async (_, { rejectWithValue }) => {
+    try {
+      // Request user to connect accounts
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      // This line triggers MetaMask to pop up
+      await provider.send('eth_requestAccounts', []);
 
-    return { provider, account, chainId: network.chainId };
-  } catch (error) {
-    return rejectWithValue(error.message);
+      const signer = provider.getSigner();
+      const account = await signer.getAddress();
+      const network = await provider.getNetwork();
+
+      return { provider, account, chainId: network.chainId };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
-});
+);
 
 const providerSlice = createSlice({
   name: 'provider',
@@ -34,6 +41,7 @@ const providerSlice = createSlice({
       })
       .addCase(connectProvider.fulfilled, (state, action) => {
         state.loading = false;
+        // Store the provider object in Redux
         state.connection = action.payload.provider;
         state.account = action.payload.account;
         state.chainId = action.payload.chainId;

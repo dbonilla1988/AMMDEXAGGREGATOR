@@ -1,53 +1,51 @@
-const hre = require("hardhat");
+// scripts/deploy.js
+const { ethers } = require("hardhat");
 
 async function main() {
-  const Token = await hre.ethers.getContractFactory('Token');
-  const AMM = await hre.ethers.getContractFactory('AMM');
-  const Aggregator = await hre.ethers.getContractFactory('Aggregator');
+  const [deployer] = await ethers.getSigners();
 
-  // Consider extracting initial parameters from config.json if relevant
-  // const config = require('./config.json');
-  // const initialSupply = config.initialSupply; // example
+  // 1) Deploy DAPP token
+  const Token = await ethers.getContractFactory("Token");
+  console.log(`Deploying DAPP token...`);
+  const dapp = await Token.deploy("DAPP Token", "DAPP", ethers.utils.parseUnits("1000000", 18));
+  await dapp.deployed();
+  console.log(`DAPP deployed at: ${dapp.address}`);
 
-  // Deploy Token instances for AMM1
-  const dappTokenAMM1 = await Token.deploy('DApp Token for AMM 1', 'DAPP1', '1000000');
-  await dappTokenAMM1.deployed();
-  console.log(`DApp Token for AMM 1 deployed to: ${dappTokenAMM1.address}`);
+  // 2) Deploy USD token
+  console.log(`Deploying USD token...`);
+  const usd = await Token.deploy("USD Token", "USD", ethers.utils.parseUnits("1000000", 18));
+  await usd.deployed();
+  console.log(`USD deployed at: ${usd.address}`);
 
-  const usdTokenAMM1 = await Token.deploy('USD Token for AMM 1', 'USD1', '1000000');
-  await usdTokenAMM1.deployed();
-  console.log(`USD Token for AMM 1 deployed to: ${usdTokenAMM1.address}`);
-
-  // Deploy Token instances for AMM2
-  const dappTokenAMM2 = await Token.deploy('DApp Token for AMM 2', 'DAPP2', '1000000');
-  await dappTokenAMM2.deployed();
-  console.log(`DApp Token for AMM 2 deployed to: ${dappTokenAMM2.address}`);
-
-  const usdTokenAMM2 = await Token.deploy('USD Token for AMM 2', 'USD2', '1000000');
-  await usdTokenAMM2.deployed();
-  console.log(`USD Token for AMM 2 deployed to: ${usdTokenAMM2.address}`);
-
-  // Deploy AMM instances
+  // 3) Deploy AMM1 (no constructor arguments)
+  const AMM = await ethers.getContractFactory("AMM");
+  console.log(`Deploying AMM1...`);
   const amm1 = await AMM.deploy();
   await amm1.deployed();
-  console.log(`AMM 1 contract deployed to: ${amm1.address}`);
+  console.log(`AMM1 deployed at: ${amm1.address}`);
 
+  // 4) Deploy AMM2 (no constructor arguments)
+  console.log(`Deploying AMM2...`);
   const amm2 = await AMM.deploy();
   await amm2.deployed();
-  console.log(`AMM 2 contract deployed to: ${amm2.address}`);
+  console.log(`AMM2 deployed at: ${amm2.address}`);
 
-  // Deploy Aggregator with AMM instances
+  // 5) Deploy Aggregator with references to AMM1 and AMM2
+  const Aggregator = await ethers.getContractFactory("Aggregator");
+  console.log(`Deploying Aggregator...`);
   const aggregator = await Aggregator.deploy(amm1.address, amm2.address);
   await aggregator.deployed();
-  console.log(`Aggregator contract deployed to: ${aggregator.address}`);
+  console.log(`Aggregator deployed at: ${aggregator.address}`);
+
+  console.log(`=== Deployment complete ===`);
+  console.log(`DAPP: ${dapp.address}`);
+  console.log(`USD:  ${usd.address}`);
+  console.log(`AMM1: ${amm1.address}`);
+  console.log(`AMM2: ${amm2.address}`);
+  console.log(`Aggregator: ${aggregator.address}`);
 }
 
-main()
-  .then(() => {
-    console.log('Deployment completed successfully.');
-    process.exit(0);
-  })
-  .catch(error => {
-    console.error('Deployment failed:', error);
-    process.exit(1);
-  });
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

@@ -1,7 +1,7 @@
 // src/components/TokenComponent.js
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-
+import { fetchTokenData } from '../store/actions'; // Import fetchTokenData from actions or wherever it is defined
 
 const TokenComponent = ({ tokenAddress }) => {
   const dispatch = useDispatch();
