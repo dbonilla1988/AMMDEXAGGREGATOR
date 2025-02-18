@@ -13,5 +13,21 @@
     "aggregator": {
       "address": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
     }
+  },
+
+  "11155111": {
+    "amm1": {
+      "dappTokenAddress": "0x58254E51CbA87B8aB446B61B0c2C706a5a0338F6",
+      "usdTokenAddress": "0xA1F0f8c5B98FCf2f0de08bb1a496D31B6125Cf2E",
+      "ammAddress": "0xa67ac556A9Da4D6005ba10dEb852C73316de9301"
+    },
+    "amm2": {
+      "dappTokenAddress": "0x58254E51CbA87B8aB446B61B0c2C706a5a0338F6",
+      "usdTokenAddress": "0xA1F0f8c5B98FCf2f0de08bb1a496D31B6125Cf2E",
+      "ammAddress": "0xE3a59897b56a32cc7A0CEdA93F3E28b67bAbe27A"
+    },
+    "aggregator": {
+      "address": "0x6002fc0eFca0964E88ea68CdE5648477708D031A"
+    }
   }
 }
